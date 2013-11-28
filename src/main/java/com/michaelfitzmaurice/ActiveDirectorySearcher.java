@@ -1,13 +1,17 @@
 package com.michaelfitzmaurice;
 
+import static java.lang.String.format;
+
 import java.util.Hashtable;
 import java.util.Properties;
 
 import javax.naming.Context;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
+import javax.naming.directory.SearchResult;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,8 +74,73 @@ public class ActiveDirectorySearcher {
     
     public Attributes searchingUserAttributes() throws NamingException {
         
+        return new InitialDirContext(searchContext)
+                        .getAttributes(ldapSearchingUser);
+    }
+    
+    public Person findPerson(String username) throws NamingException {
+        
+        LOG.debug("Searching for person with username '{}'...", username);
+        
+        Person person = null;
+        String searchFilter = format("%s=%s", ldapUsernameAttribute, username);
         InitialDirContext dir = new InitialDirContext(searchContext);
         
-        return dir.getAttributes(ldapSearchingUser);
+        NamingEnumeration<SearchResult> results = 
+            dir.search(ldapSearchBase, searchFilter, searchControls);
+        if ( results.hasMore() ) {
+            LOG.debug("Found a matching person for '{}", username);
+            person = new Person();
+            person.setUsername(username);
+            
+            SearchResult result = results.next();
+            Attributes personAttributes = result.getAttributes();
+            if (personAttributes.get("cn") != null) {
+                person.setFullName( 
+                    personAttributes.get("cn").get().toString() );
+            }
+            if (personAttributes.get("title") != null) {
+                person.setTitle( 
+                    personAttributes.get("title").get().toString() );
+            }
+            if (personAttributes.get("physicalDeliveryOfficeName") != null) {
+                person.setLocation( 
+                    personAttributes.get(
+                        "physicalDeliveryOfficeName").get().toString() );
+            }
+            if (personAttributes.get("houseIdentifier") != null) {
+                person.setFloor( 
+                    personAttributes.get("houseIdentifier").get().toString() );
+            }
+            if (personAttributes.get("roomNumber") != null) {
+                person.setDesk( 
+                    personAttributes.get("roomNumber").get().toString() );
+            }
+            if (personAttributes.get("telephoneNumber") != null) {
+                person.setTelephoneNumber( 
+                    personAttributes.get("telephoneNumber").get().toString() );
+            }
+            if (personAttributes.get("mail") != null) {
+                person.setEmailAddress( 
+                    personAttributes.get("mail").get().toString() );
+            }
+            if (personAttributes.get("department") != null) {
+                person.setDepartment( 
+                    personAttributes.get("department").get().toString() );
+            }
+            if (personAttributes.get("manager") != null) {
+                person.setManager( 
+                    personAttributes.get("manager").get().toString() );
+            }
+            if (personAttributes.get("businessCategory") != null) {
+                person.setManagerLevel( 
+                    personAttributes.get(
+                        "businessCategory").get().toString() );
+            }
+        } else {
+            LOG.debug("Found no matching person for ''", username);
+        }
+        
+        return person;
     }
 }

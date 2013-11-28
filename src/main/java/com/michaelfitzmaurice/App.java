@@ -21,8 +21,6 @@ public class App {
     
     public static void main(String[] args) throws Exception {
         
-//        System.out.println("Hello World!");
-        
         LOG.info("Looking for ldap properties file...");
         URL fileUrl = new Object().getClass().getResource("/ldap.properties");
         if (fileUrl == null) {
@@ -36,7 +34,17 @@ public class App {
         
         ActiveDirectorySearcher searcher = 
             new ActiveDirectorySearcher(ldapProperties);
-        LOG.info( "Searching user attributes: " 
-                    + searcher.searchingUserAttributes() );
+        LOG.info( "Searching user attributes: {}", 
+                    searcher.searchingUserAttributes() );
+        
+        if (args.length > 0) {
+            LOG.info("Searching the remote directory for {} users...", 
+                        args.length);
+            for (int i = 0; i < args.length; i++) {
+                String username = args[i];
+                Person person = searcher.findPerson(username);
+                LOG.info("Search result for '{}' : {}", username, person);
+            }
+        }
     }
 }
