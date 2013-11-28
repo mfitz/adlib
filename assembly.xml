@@ -30,9 +30,6 @@
             <directory>${project.basedir}/src/main/resources/properties</directory>
             <outputDirectory>lib</outputDirectory>
             <fileMode>0755</fileMode>
-            <!--  <includes>
-                <include>*.sh</include>
-            </includes> -->
         </fileSet>
 
 		<fileSet>

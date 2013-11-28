@@ -6,6 +6,8 @@ twitter4j.properties*
 target/
 PrevalenceBase/
 *~
+ActiveDirectoryAuthenticator.java
+ActiveDirectoryPerson.java
 
 # Package Files #
 *.jar
