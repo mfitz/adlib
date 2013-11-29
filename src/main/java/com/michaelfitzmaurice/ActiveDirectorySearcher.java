@@ -138,7 +138,7 @@ public class ActiveDirectorySearcher {
                         "businessCategory").get().toString() );
             }
         } else {
-            LOG.debug("Found no matching person for ''", username);
+            LOG.debug("Found no matching person for '{}'", username);
         }
         
         return person;
