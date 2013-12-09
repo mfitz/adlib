@@ -53,6 +53,8 @@ public class ActiveDirectorySearcher {
         searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
         
         searchContext = new Hashtable<String, String>();
+        LOG.info("Default initial context factory: {}", 
+                    System.getProperty(Context.INITIAL_CONTEXT_FACTORY) );
         searchContext.put(  Context.INITIAL_CONTEXT_FACTORY, 
                             "com.sun.jndi.ldap.LdapCtxFactory");
         searchContext.put(Context.PROVIDER_URL, ldapUrl);
