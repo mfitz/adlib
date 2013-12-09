@@ -8,6 +8,7 @@ import java.util.Properties;
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
@@ -78,6 +79,29 @@ public class ActiveDirectorySearcher {
         
         return new InitialDirContext(searchContext)
                         .getAttributes(ldapSearchingUser);
+    }
+    
+    public String baseDn() throws NamingException {
+        
+        int oldSearchScope = searchControls.getSearchScope();
+        try {
+            searchControls.setSearchScope(SearchControls.OBJECT_SCOPE);
+            NamingEnumeration<SearchResult> results = 
+                new InitialDirContext(searchContext)
+                    .search("", "(objectClass=top)", searchControls);
+            SearchResult result = results.next();
+            Attributes attributes = result.getAttributes();
+            LOG.debug("Attributes from search at root: {}", attributes);
+            Attribute namingContexts = attributes.get("namingContexts");
+            
+            if (namingContexts == null) {
+                return "unknown";
+            } else {
+                return namingContexts.toString();
+            }
+        } finally {
+            searchControls.setSearchScope(oldSearchScope); 
+        }
     }
     
     public Person findPerson(String username) throws NamingException {

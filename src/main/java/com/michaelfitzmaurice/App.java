@@ -34,6 +34,7 @@ public class App {
         
         ActiveDirectorySearcher searcher = 
             new ActiveDirectorySearcher(ldapProperties);
+        LOG.info( "Base DN of directory: {}", searcher.baseDn() );
         LOG.info( "Searching user attributes: {}", 
                     searcher.searchingUserAttributes() );
         
