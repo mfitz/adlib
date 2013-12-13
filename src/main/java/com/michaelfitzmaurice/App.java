@@ -16,6 +16,15 @@ import org.slf4j.LoggerFactory;
  */
 public class App {
     
+    private static final String PRINT_SEARCHING_USER_PROPERTY = 
+        "printSearchingUser";
+    private static final String PRINT_BOUND_OBJECTS_PROPERTY = 
+        "printBoundObjects";
+    private static final String PRINT_OBJECT_CLASSES_PROPERTY = 
+        "printObjectClasses";
+    private static final String RANDOM_SEARCH_PROPERTY = 
+        "randomSearch";
+    
     private static final transient Logger LOG = 
         LoggerFactory.getLogger(App.class);
     
@@ -35,8 +44,19 @@ public class App {
         ActiveDirectorySearcher searcher = 
             new ActiveDirectorySearcher(ldapProperties);
         LOG.info( "Base DN of directory: {}", searcher.baseDn() );
-        LOG.info( "Searching user attributes: {}", 
-                    searcher.searchingUserAttributes() );
+        if ( Boolean.getBoolean(PRINT_SEARCHING_USER_PROPERTY) ) {
+            LOG.info( "Searching user attributes: {}", 
+                        searcher.searchingUserAttributes() );    
+        }
+        if ( Boolean.getBoolean(PRINT_BOUND_OBJECTS_PROPERTY) ) {
+            LOG.info( searcher.boundOjects() );
+        }
+        if ( Boolean.getBoolean(PRINT_OBJECT_CLASSES_PROPERTY) ) {
+            LOG.info( searcher.objectClasses() );
+        }
+        if ( Boolean.getBoolean(RANDOM_SEARCH_PROPERTY) ) {
+            searcher.randomSearch();
+        }
         
         if (args.length > 0) {
             LOG.info("Searching the remote directory for {} users...", 

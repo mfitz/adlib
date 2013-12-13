@@ -10,9 +10,11 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
+import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
+import javax.naming.ldap.InitialLdapContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,10 @@ public class ActiveDirectorySearcher {
     private String ldapUsernameAttribute;
     private String ldapSecurityAuthentication;
     private String ldapSecurityProtocol;
+    
+    private String randomSearchContext;
+    private String randomSearchFilter;
+    private int randomSearchScope;
     
     private Hashtable<String, String> searchContext;
     private SearchControls searchControls;
@@ -48,6 +54,16 @@ public class ActiveDirectorySearcher {
         ldapSecurityProtocol = 
             ldapProperties.getProperty("ldap.security.protocol");
         LOG.info("Finished reading LDAP configuration");
+            
+        randomSearchContext = 
+            ldapProperties.getProperty("ldap.random.search.context");
+        randomSearchFilter = 
+            ldapProperties.getProperty("ldap.random.search.filter");
+        String randomSearchScopeString =
+            ldapProperties.getProperty("ldap.random.search.scope", 
+                                        "" + SearchControls.SUBTREE_SCOPE);
+        randomSearchScope = Integer.parseInt(randomSearchScopeString);
+        
         
         LOG.info("Setting up JNDI search objects...");
         searchControls = new SearchControls();
@@ -75,10 +91,74 @@ public class ActiveDirectorySearcher {
         LOG.info("Finished setting up JNDI search objects");
     }
     
+    public void randomSearch() throws NamingException {
+        
+        LOG.info("Performing random search from context '{}' with filter '{}'", 
+                    randomSearchContext, 
+                    randomSearchFilter);
+        InitialDirContext dirContext = new InitialDirContext(searchContext);
+        SearchControls searchControls = new SearchControls();
+        searchControls.setSearchScope(randomSearchScope);
+        NamingEnumeration<SearchResult> results = 
+            dirContext.search(randomSearchContext, 
+                                randomSearchFilter, 
+                                searchControls);
+        
+        int resultCount = 0;
+        while ( results.hasMoreElements() ) {
+            resultCount++;
+            LOG.info("\tSearch result {}:", resultCount);
+            SearchResult result = results.nextElement();
+            Attributes attributes = result.getAttributes();
+            NamingEnumeration<String> allAttrs = attributes.getIDs();
+            while( allAttrs.hasMoreElements() ) {
+                String attrName = allAttrs.nextElement();
+                LOG.info( "\t\t{} : {}", attrName, attributes.get(attrName) );
+            }
+        }
+        LOG.info("Finished search; found {} results", resultCount);
+    }
+    
     public Attributes searchingUserAttributes() throws NamingException {
         
         return new InitialDirContext(searchContext)
-                        .getAttributes(ldapSearchingUser);
+                        .getAttributes(ldapUsernameAttribute + "=" 
+                                        + ldapSearchingUser);
+    }
+    
+    public String objectClasses() throws NamingException {
+        
+        DirContext ctx = new InitialLdapContext(searchContext, null);
+
+        SearchControls searchControls = new SearchControls();
+        searchControls.setSearchScope( SearchControls.OBJECT_SCOPE );
+        searchControls.setReturningAttributes( new String[]
+            { "objectClasses" } );
+        NamingEnumeration<SearchResult> results = 
+            ctx.search( "cn=schema", "(ObjectClass=*)", searchControls );
+
+        SearchResult result = results.next();
+        Attributes entry = result.getAttributes();
+
+        Attribute objectClasses = entry.get( "objectClasses" );
+        return objectClasses.toString();
+    }
+    
+    public String boundOjects() throws NamingException {
+        
+        InitialDirContext ctx = new InitialDirContext(searchContext);
+        SearchControls ctls = new SearchControls();
+        ctls.setReturningObjFlag(true);
+
+        String filter = "(objectclass=*)";
+        NamingEnumeration<SearchResult> answer = ctx.search("", filter, ctls);
+        StringBuffer buffer = new StringBuffer();
+        while ( answer.hasMore() ) {
+            buffer.append( answer.nextElement().toString() );
+            buffer.append("\n");
+        }
+        
+        return buffer.toString();
     }
     
     public String baseDn() throws NamingException {
@@ -86,10 +166,15 @@ public class ActiveDirectorySearcher {
         int oldSearchScope = searchControls.getSearchScope();
         try {
             searchControls.setSearchScope(SearchControls.OBJECT_SCOPE);
+            InitialDirContext dirContext = new InitialDirContext(searchContext);
+            LOG.info("baseDn() search context DN: '{}'", 
+                        dirContext.getNameInNamespace() );
             NamingEnumeration<SearchResult> results = 
-                new InitialDirContext(searchContext)
-                    .search("", "(objectClass=top)", searchControls);
+                    dirContext.search("", "(objectClass=top)", searchControls);
+            
             SearchResult result = results.next();
+            LOG.info( "Search result name in namespace: '{}'", 
+                        result.getNameInNamespace());
             Attributes attributes = result.getAttributes();
             LOG.debug("Attributes from search at root: {}", attributes);
             Attribute namingContexts = attributes.get("namingContexts");
@@ -109,9 +194,11 @@ public class ActiveDirectorySearcher {
         LOG.debug("Searching for person with username '{}'...", username);
         
         Person person = null;
-        String searchFilter = format("%s=%s", ldapUsernameAttribute, username);
+        String searchFilter = format("(%s=%s)", ldapUsernameAttribute, username);
         InitialDirContext dir = new InitialDirContext(searchContext);
         
+        LOG.debug("Searching from context '{}' with filter '{}'", 
+                    ldapSearchBase, searchFilter);
         NamingEnumeration<SearchResult> results = 
             dir.search(ldapSearchBase, searchFilter, searchControls);
         if ( results.hasMore() ) {

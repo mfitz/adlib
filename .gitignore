@@ -8,6 +8,7 @@ PrevalenceBase/
 *~
 ActiveDirectoryAuthenticator.java
 ActiveDirectoryPerson.java
+PropsTest.java
 
 # Package Files #
 *.jar
